@@ -22,8 +22,6 @@ import json
 import os.path
 import select
 import socket
-
-
 #
 # Constants
 #
@@ -48,10 +46,10 @@ except ImportError:
     from urllib import request
     web = request
 
-try:
-    from PyQt4.QtCore import QTimer
-    from PyQt4.QtGui import QMessageBox
-except ImportError:
+# try:
+#     from PyQt4.QtCore import QTimer
+#     from PyQt4.QtGui import QMessageBox
+# except ImportError:
     from PyQt5.QtCore import QTimer
     from PyQt5.QtWidgets import QMessageBox
 
@@ -103,7 +101,11 @@ def verifyStringList(strings):
 
     return True
 
-
+def oops(string,level=0):
+     if level<1:
+         print(string)
+     else:
+         raise Exception(string)
 
 #
 # AjaxRequest
@@ -299,12 +301,28 @@ class AnkiNoteParams:
 
 
     def validate(self):
-        return (
-            verifyString(self.deckName) and
-            verifyString(self.modelName) and
-            type(self.fields) == dict and verifyStringList(list(self.fields.keys())) and verifyStringList(list(self.fields.values())) and
-            type(self.tags) == list and verifyStringList(self.tags)
-        )
+        validdict = { 
+          'deckName': verifyString(self.deckName),
+          'modelName': verifyString(self.modelName),
+          'tags': type(self.tags) == list and verifyStringList(self.tags),
+          'fields': 
+            type(self.fields) == dict and 
+            verifyStringList(list(self.fields.keys())) and 
+            verifyStringList(list(self.fields.values()))
+        }
+
+        for (k,v) in validdict.items():
+          if not v: 
+             oops("note param '%s' not valid"%k)
+             return False
+        return True 
+
+        # return (
+        #     verifyString(self.deckName) and
+        #     verifyString(self.modelName) and
+        #     type(self.fields) == dict and verifyStringList(list(self.fields.keys())) and verifyStringList(list(self.fields.values())) and
+        #     type(self.tags) == list and verifyStringList(self.tags)
+        # )
 
 
 #
@@ -315,10 +333,12 @@ class AnkiBridge:
     def addNote(self, params):
         collection = self.collection()
         if collection is None:
+            oops("could not connect to collection to add note")
             return
 
         note = self.createNote(params)
         if note is None:
+            #oops("attempted to create note, but is empty (%s)!"%params)
             return
 
         if params.audio is not None and len(params.audio.fields) > 0:
@@ -350,16 +370,20 @@ class AnkiBridge:
     def createNote(self, params):
         collection = self.collection()
         if collection is None:
+            oops("could not connect to collection to create note")
             return
 
         model = collection.models.byName(params.modelName)
         if model is None:
+            oops("could not open model %s to create note"%params.modelName)
             return
 
         deck = collection.decks.byName(params.deckName)
         if deck is None:
+            oops("could not open deck %s to create note"%params.deckName)
             return
 
+        #print("found deck: %s"%deck)
         note = anki.notes.Note(collection, model)
         note.model()['did'] = deck['id']
         note.tags = params.tags
@@ -367,9 +391,14 @@ class AnkiBridge:
         for name, value in params.fields.items():
             if name in note:
                 note[name] = value
+            else:
+                print("\tcreateNote: skipping %s => %s.  name is not in note"%(name,value))
+
 
         if not note.dupeOrEmpty():
             return note
+        else:
+            oops("note is dupe or empty")
 
 
     def startEditing(self):
@@ -445,11 +474,15 @@ class AnkiConnect:
 
     def handler(self, request):
         action = 'api_' + request.get('action', '')
+        params = request.get('params') or {}
         if hasattr(self, action):
             try:
-                return getattr(self, action)(**(request.get('params') or {}))
-            except TypeError:
+                return getattr(self, action)(**params)
+            except TypeError as e:
+                oops("TypeError (%e) running %s! parmas: %s"%(action,e,params))
                 return None
+        else:
+           oops("action %s doesnt exist"%action,1)
 
 
     def api_deckNames(self):
@@ -468,6 +501,9 @@ class AnkiConnect:
         params = AnkiNoteParams(note)
         if params.validate():
             return self.anki.addNote(params)
+        else:
+            oops("note: %s is not valid"%note)
+
 
 
     def api_addNotes(self, notes):

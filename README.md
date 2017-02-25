@@ -6,12 +6,15 @@ automatically create new vocabulary and Kanji flash cards, and more.
 
 ## Requirements ##
 
-* [Anki](http://ankisrs.net/) (versions 2.0.x and 2.1.x supported)
+* [Anki](http://ankisrs.net/) (2.1.x supported)
 
 ## Installation (for most users) ##
 
 AnkiConnect can be downloaded from the [shared addon page](https://ankiweb.net/shared/info/2055492159) on AnkiWeb. Once
 installed, the extension is ready for immediate use.
+
+### Linux ###
+See the `Makefile`
 
 ### Windows ###
 
