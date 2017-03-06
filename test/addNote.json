@@ -1,7 +1,5 @@
 {
   "action": "addNote",
-  "modelName": "Basic",
-  "deckName": "Default",
   "params": {
     "note": {
       "deckName": "Default",

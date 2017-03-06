@@ -479,7 +479,7 @@ class AnkiConnect:
             try:
                 return getattr(self, action)(**params)
             except TypeError as e:
-                oops("TypeError (%e) running %s! parmas: %s"%(action,e,params))
+                oops("TypeError (%s) running %s! parmas: %s"%(e,action,params))
                 return None
         else:
            oops("action %s doesnt exist"%action,1)
